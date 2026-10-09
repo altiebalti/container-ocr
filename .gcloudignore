@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+.venv/
+venv/
+tests/
+samples/
+docs/
+*.md
+deploy.sh
+cleanup.sh
+.api_key
+pytest.ini

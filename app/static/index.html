@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Container OCR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --steel: #eef1f2;
+    --panel: #ffffff;
+    --ink: #17202a;
+    --ink-2: #4a5561;
+    --line: #cdd4d9;
+    --plate: #22303c;
+    --signal: #f5b800;
+    --ok: #1e7b4a;
+    --bad: #b42318;
+    --radius: 6px;
+    --sans: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cond: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--steel);
+    color: var(--ink);
+    font: 400 16px/1.5 var(--sans);
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+
+  /* ---------------------------------------------------------------- header */
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .brand h1 { margin: 0; font: 700 24px/1 var(--cond); letter-spacing: .01em; }
+  .brand p { margin: 0; color: var(--ink-2); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .key { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .key input {
+    width: 180px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--steel); font-size: 14px;
+  }
+  .top a { color: var(--ink-2); font-size: 14px; }
+
+  /* ---------------------------------------------------------------- layout */
+  main {
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 24px; max-width: 1200px; margin: 0 auto; padding: 24px;
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+    .top { padding: 12px 16px; flex-wrap: wrap; }
+    .brand p { display: none; }
+    .key { order: 3; flex: 1 1 100%; }
+    .key input { flex: 1; width: auto; }
+    .seg span { padding: 5px 8px; font-size: 13px; }
+  }
+
+  /* ---------------------------------------------------------------- photo */
+  .stage {
+    position: relative; min-height: 360px; border-radius: var(--radius);
+    background: var(--panel); border: 2px dashed var(--line);
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .stage.drag { border-color: var(--signal); background: #fffbea; }
+  .stage.has-photo { border: 1px solid var(--line); background: #0f171e; min-height: 0; }
+  .empty { text-align: center; padding: 32px 20px; max-width: 420px; }
+  .empty h2 { margin: 0 0 6px; font: 600 26px/1.15 var(--cond); }
+  .empty p { margin: 0 0 20px; color: var(--ink-2); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 10px 18px; border-radius: var(--radius); border: 1px solid var(--plate);
+    background: var(--plate); color: #fff; font-weight: 600;
+  }
+  .btn.secondary { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn:hover { filter: brightness(1.12); }
+  .camera-only { display: none; }
+  @media (pointer: coarse) { .camera-only { display: inline-flex; } }
+
+  .photo { position: relative; width: 100%; line-height: 0; }
+  .photo img { width: 100%; height: auto; display: block; }
+  .photo svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .hit { fill: rgba(245, 184, 0, .12); stroke: var(--signal); stroke-width: 3; }
+  .hit-2 { fill: none; stroke: var(--signal); stroke-width: 2; stroke-dasharray: 6 5; }
+  .photo.busy img { opacity: .55; }
+  .scanline {
+    position: absolute; left: 0; right: 0; height: 3px; top: 0; background: var(--signal);
+    box-shadow: 0 0 18px 4px rgba(245, 184, 0, .55); display: none;
+  }
+  .photo.busy .scanline { display: block; animation: sweep 1.6s ease-in-out infinite alternate; }
+  @keyframes sweep { from { top: 0; } to { top: calc(100% - 3px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .photo.busy .scanline { animation: none; top: 50%; }
+  }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 12px; font-size: 14px; color: var(--ink-2);
+  }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .seg label { cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; padding: 5px 12px; background: var(--panel); }
+  .seg input:checked + span { background: var(--plate); color: #fff; }
+  .seg input:focus-visible + span { outline: 3px solid var(--signal); outline-offset: -3px; }
+  .toolbar .btn { padding: 6px 14px; }
+
+  /* ---------------------------------------------------------------- result */
+  .side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .plate {
+    background: var(--plate); color: #fff; border-radius: var(--radius);
+    padding: 20px 22px 18px; container-type: inline-size;
+  }
+  .plate .number {
+    /* увесь номер в один рядок, як на контейнері: розмір від ширини плашки */
+    font: 600 min(64px, 10.5cqi)/1 var(--cond); letter-spacing: .05em; white-space: nowrap;
+    display: flex; align-items: center; gap: .28em; margin: 0;
+  }
+  .plate .cd {
+    border: 3px solid currentColor; padding: .02em .16em 0; line-height: 1; border-radius: 2px;
+  }
+  .plate.bad .cd { border-color: #ff8a80; color: #ff8a80; }
+  .plate .cd.computed { border-style: dashed; color: #9fb0bd; }
+  .plate .placeholder { font: 600 32px/1.1 var(--cond); color: #9fb0bd; margin: 0; }
+  .status { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; font-weight: 500; }
+  .status svg { flex: none; margin-top: 2px; }
+  .plate .status.ok { color: #8fe0b3; }
+  .plate .status.bad { color: #ffb4ab; }
+  .plate .status.none { color: #c9d4dc; }
+
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0;
+           border-top: 1px solid var(--line); }
+  .facts div { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .facts div:nth-child(odd) { padding-right: 12px; }
+  .facts dt { color: var(--ink-2); font-size: 14px; }
+  .facts dd { margin: 0; font-weight: 600; }
+  .facts .wide { grid-column: 1 / -1; padding-right: 0; }
+
+  details { border-top: 1px solid var(--line); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+  pre {
+    white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+    max-height: 260px; overflow: auto;
+  }
+  .others { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+  .error {
+    border-left: 4px solid var(--bad); background: #fdecea; padding: 12px 14px; border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .error strong { display: block; }
+
+  /* ---------------------------------------------------------------- history */
+  .history h2 { font: 600 22px/1.2 var(--cond); margin: 0 0 8px; }
+  .history ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .history li button {
+    width: 100%; display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center;
+    padding: 8px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer;
+  }
+  .history li button:hover { background: rgba(255, 255, 255, .6); }
+  .history img, .history .noimg {
+    width: 56px; height: 42px; object-fit: cover; border-radius: 3px; background: #d6dde2; display: block;
+  }
+  .history li button > span:nth-child(2) { min-width: 0; }
+  .history .num { font: 600 19px/1.15 var(--cond); letter-spacing: .03em; display: block;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history .num.muted { color: var(--ink-2); font-weight: 500; }
+  .history time { color: var(--ink-2); font-size: 13px; display: block; }
+  .history .mark { font-size: 13px; font-weight: 600; }
+  .mark.ok { color: var(--ok); }
+  .mark.bad { color: var(--bad); }
+  .mark.none { color: var(--ink-2); }
+  .history .empty-list { color: var(--ink-2); font-size: 14px; padding: 10px 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Container OCR</h1>
+    <p>Номер контейнера з фото через Google Cloud Vision і перевірка за ISO 6346</p>
+  </div>
+  <div class="key" id="keyBox" hidden>
+    <label for="apiKey">API-ключ</label>
+    <input id="apiKey" type="password" autocomplete="off" placeholder="X-API-Key">
+  </div>
+  <a href="/docs">Документація API</a>
+</header>
+
+<main>
+  <section aria-label="Фото">
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <h2>Сфотографуйте двері контейнера</h2>
+        <p>Номер на зразок CSQU 305438 3 має бути в кадрі. Фото можна перетягнути сюди або вставити з буфера (Ctrl+V).</p>
+        <div class="actions">
+          <label class="btn camera-only">
+            Зробити фото
+            <input class="sr" type="file" accept="image/*" capture="environment" data-pick>
+          </label>
+          <label class="btn" id="pickLabel">
+            Вибрати фото
+            <input class="sr" type="file" accept="image/*" data-pick>
+          </label>
+        </div>
+      </div>
+      <div class="photo" id="photo" hidden>
+        <img id="img" alt="Фото контейнера">
+        <svg id="overlay" aria-hidden="true"></svg>
+        <div class="scanline"></div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="seg" role="radiogroup" aria-label="Режим розпізнавання">
+        <label><input type="radio" name="mode" value="text" checked><span>TEXT_DETECTION</span></label>
+        <label><input type="radio" name="mode" value="document"><span>DOCUMENT_TEXT_DETECTION</span></label>
+      </div>
+      <label class="btn secondary" id="againBtn" hidden>
+        Інше фото
+        <input class="sr" type="file" accept="image/*" data-pick>
+      </label>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div id="result" aria-live="polite">
+      <div class="plate">
+        <p class="placeholder">Номер з'явиться тут</p>
+        <div class="status none">Після розпізнавання сервіс перевірить контрольну цифру за ISO 6346.</div>
+      </div>
+    </div>
+    <section class="history" aria-labelledby="histTitle">
+      <h2 id="histTitle">Останні сканування</h2>
+      <ol id="history"><li class="empty-list">Ще нічого не скановано.</li></ol>
+    </section>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage"), photo = $("photo"), img = $("img"), overlay = $("overlay");
+  const result = $("result"), historyList = $("history"), keyInput = $("apiKey");
+  let authRequired = false;
+  let currentUrl = null;
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* без збереження */ } },
+  };
+  keyInput.value = store.get("container-ocr-key") || "";
+  keyInput.addEventListener("change", () => { store.set("container-ocr-key", keyInput.value.trim()); loadHistory(); });
+
+  const key = () => keyInput.value.trim();
+  const headers = () => (key() ? { "X-API-Key": key() } : {});
+  // фото з історії вантажаться через fetch із заголовком, щоб ключ не потрапляв в URL і логи
+  const blobUrls = new Set();
+  async function protectedSrc(url) {
+    const r = await fetch(url, { headers: headers() });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const u = URL.createObjectURL(await r.blob());
+    blobUrls.add(u);
+    return u;
+  }
+  function releaseThumbs() { blobUrls.forEach((u) => URL.revokeObjectURL(u)); blobUrls.clear(); }
+  const mode = () => document.querySelector("input[name=mode]:checked").value;
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const ICON_OK = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 10.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>';
+  const ICON_BAD = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.5 6.5l7 7M13.5 6.5l-7 7" stroke="currentColor" stroke-width="2.2"/></svg>';
+  const ICON_NONE = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10h8" stroke="currentColor" stroke-width="2.2"/></svg>';
+
+  // ------------------------------------------------------------ вибір фото
+  document.querySelectorAll("[data-pick]").forEach((input) =>
+    input.addEventListener("change", () => { if (input.files[0]) scan(input.files[0]); input.value = ""; }));
+
+  ["dragenter", "dragover"].forEach((t) => stage.addEventListener(t, (e) => { e.preventDefault(); stage.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((t) => stage.addEventListener(t, () => stage.classList.remove("drag")));
+  stage.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
+    if (f) scan(f);
+  });
+  window.addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData?.items || [])].find((x) => x.type.startsWith("image/"));
+    if (item) scan(item.getAsFile());
+  });
+
+  function showPhoto(src) {
+    if (currentUrl && !blobUrls.has(currentUrl)) URL.revokeObjectURL(currentUrl);
+    currentUrl = src;
+    $("empty").hidden = true;
+    photo.hidden = false;
+    $("againBtn").hidden = false;
+    stage.classList.add("has-photo");
+    overlay.innerHTML = "";
+    img.src = src;
+  }
+
+  function resetStage() {
+    if (currentUrl && !blobUrls.has(currentUrl)) URL.revokeObjectURL(currentUrl);
+    currentUrl = null;
+    photo.hidden = true;
+    $("empty").hidden = false;
+    $("againBtn").hidden = true;
+    stage.classList.remove("has-photo");
+    overlay.innerHTML = "";
+  }
+
+  // ------------------------------------------------------------ сканування
+  async function scan(file) {
+    showPhoto(URL.createObjectURL(file));
+    photo.classList.add("busy");
+    result.innerHTML = '<div class="plate"><p class="placeholder">Розпізнаю…</p>' +
+      '<div class="status none">Фото надіслано у Cloud Vision.</div></div>';
+    const form = new FormData();
+    form.append("file", file, file.name || "photo.jpg");
+    try {
+      const r = await fetch("/api/scan?mode=" + mode(), { method: "POST", body: form, headers: headers() });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.detail || ("HTTP " + r.status));
+      render(body);
+      loadHistory();
+    } catch (err) {
+      overlay.innerHTML = "";
+      const hint = /API-ключ/.test(err.message) ? " Введіть ключ угорі сторінки." : "";
+      if (hint) $("keyBox").hidden = false;
+      result.innerHTML = '<div class="error"><strong>Не вдалося розпізнати фото</strong>' + esc(err.message) + hint + "</div>";
+    } finally {
+      photo.classList.remove("busy");
+    }
+  }
+
+  function drawBoxes(rec) {
+    const w = rec.image?.width, h = rec.image?.height;
+    if (!w || !h) { overlay.innerHTML = ""; return; }
+    overlay.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    overlay.setAttribute("preserveAspectRatio", "none");
+    const rect = (b, cls) => {
+      if (!b) return "";
+      const pad = Math.round(Math.max(w, h) * 0.006);
+      return `<rect class="${cls}" x="${b[0] - pad}" y="${b[1] - pad}" width="${b[2] - b[0] + 2 * pad}" height="${b[3] - b[1] + 2 * pad}" rx="4" vector-effect="non-scaling-stroke"/>`;
+    };
+    overlay.innerHTML = rect(rec.container?.box, "hit") + rect(rec.size_type?.box, "hit-2");
+  }
+
+  function render(rec) {
+    drawBoxes(rec);
+    const c = rec.container;
+    let plate;
+    if (!c) {
+      plate = `<div class="plate"><p class="placeholder">Номер не знайдено</p>
+        <div class="status none">${ICON_NONE}<span>Сфотографуйте ближче й рівніше, щоб номер займав помітну частину кадру. Нижче видно, що прочитав OCR.</span></div></div>`;
+    } else if (!c.check_digit_read) {
+      plate = `<div class="plate">
+        <p class="number" aria-label="${esc(c.formatted)}"><span>${esc(c.number.slice(0, 4))}</span><span>${esc(c.number.slice(4, 10))}</span><span class="cd computed">${esc(c.number[10])}</span></p>
+        <div class="status none">${ICON_NONE}<span>Контрольну цифру на фото не прочитано. За ISO 6346 вона має бути ${esc(c.expected_check_digit)}: звірте з контейнером.</span></div></div>`;
+    } else {
+      const ok = c.valid;
+      const msg = ok
+        ? `Контрольна цифра ${c.check_digit} сходиться` + (c.corrected ? `. Виправлено помилки OCR: прочитано «${esc(c.raw)}»` : "")
+        : `Контрольна цифра не сходиться: на фото ${c.check_digit}, за розрахунком має бути ${c.expected_check_digit}. Можливо, OCR помилився в одному із символів.`;
+      plate = `<div class="plate ${ok ? "" : "bad"}">
+        <p class="number" aria-label="${esc(c.formatted)}"><span>${esc(c.number.slice(0, 4))}</span><span>${esc(c.number.slice(4, 10))}</span><span class="cd">${esc(c.number[10])}</span></p>
+        <div class="status ${ok ? "ok" : "bad"}">${ok ? ICON_OK : ICON_BAD}<span>${msg}</span></div></div>`;
+    }
+    let facts = "";
+    if (c) {
+      facts += `<div><dt>Власник</dt><dd>${esc(c.owner_code)}</dd></div>
+        <div><dt>Категорія ${esc(c.category)}</dt><dd>${esc(c.category_name)}</dd></div>
+        <div><dt>Серійний номер</dt><dd>${esc(c.serial)}</dd></div>
+        <div><dt>Контрольна цифра</dt><dd>${!c.check_digit_read ? esc(c.expected_check_digit) + " (обчислено)" : esc(c.check_digit) + (c.valid ? "" : " (має бути " + esc(c.expected_check_digit) + ")")}</dd></div>`;
+    }
+    const st = rec.size_type;
+    if (st) {
+      facts += `<div class="wide"><dt>Розмір і тип ${esc(st.code)}</dt><dd>${esc(st.length)}, висота ${esc(st.height)}, ${esc(st.type)}</dd></div>`;
+    }
+    const t = rec.timings_ms || {};
+    facts += `<div><dt>Vision API</dt><dd>${t.ocr != null ? t.ocr + " мс" : "—"}</dd></div>
+      <div><dt>Режим</dt><dd>${rec.ocr_mode === "document" ? "DOCUMENT_TEXT_DETECTION" : "TEXT_DETECTION"}</dd></div>`;
+    const others = (rec.candidates || []).slice(1);
+    const othersHtml = others.length
+      ? `<p class="others">Інші знайдені варіанти: ${others.map((o) => esc(o.formatted) + (o.valid ? "" : " (невалідний)")).join(", ")}</p>` : "";
+    const stored = rec.store_error ? `<p class="others">Не збережено в історію: ${esc(rec.store_error)}</p>` : "";
+    result.innerHTML = plate + `<dl class="facts">${facts}</dl>` + othersHtml + stored +
+      `<details><summary>Текст, який прочитав Vision</summary><pre>${esc(rec.text || "(порожньо)")}</pre></details>`;
+  }
+
+  // ------------------------------------------------------------ історія
+  async function loadHistory() {
+    releaseThumbs();
+    try {
+      const r = await fetch("/api/scans?limit=10", { headers: headers() });
+      if (!r.ok) {
+        if (r.status === 401) $("keyBox").hidden = false;
+        historyList.innerHTML = `<li class="empty-list">${r.status === 401 ? "Введіть API-ключ, щоб побачити історію." : "Історія недоступна."}</li>`;
+        return;
+      }
+      const { items } = await r.json();
+      if (!items.length) { historyList.innerHTML = '<li class="empty-list">Ще нічого не скановано.</li>'; return; }
+      historyList.innerHTML = items.map((rec, i) => {
+        const c = rec.container;
+        const cls = rec.status === "valid" ? "ok" : rec.status === "invalid_check_digit" ? "bad" : "none";
+        const label = { valid: "валідний", invalid_check_digit: "цифра не сходиться",
+                        check_digit_missing: "цифру обчислено", not_found: "не знайдено" }[rec.status] || "";
+        const when = new Date(rec.created_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        const thumb = rec.image_stored
+          ? `<img data-thumb="${esc(rec.id)}" alt="">`
+          : '<span class="noimg"></span>';
+        return `<li><button type="button" data-i="${i}">${thumb}
+          <span><span class="num ${c ? "" : "muted"}">${c ? esc(c.formatted) : "Номер не знайдено"}</span><time>${esc(when)}</time></span>
+          <span class="mark ${cls}">${label}</span></button></li>`;
+      }).join("");
+      historyList.querySelectorAll("img[data-thumb]").forEach((el) =>
+        protectedSrc("/api/scans/" + encodeURIComponent(el.dataset.thumb) + "/image?thumb=1")
+          .then((u) => { el.src = u; }).catch(() => {}));
+      historyList.querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+        const rec = items[+b.dataset.i];
+        resetStage();
+        render(rec);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (rec.image_stored) {
+          try {
+            showPhoto(await protectedSrc("/api/scans/" + encodeURIComponent(rec.id) + "/image"));
+            drawBoxes(rec);
+          } catch (e) { /* фото недоступне - лишається лише результат */ }
+        }
+      }));
+    } catch (e) {
+      historyList.innerHTML = '<li class="empty-list">Історія недоступна.</li>';
+    }
+  }
+
+  fetch("/api/info").then((r) => r.json()).then((info) => {
+    authRequired = info.auth_required;
+    $("keyBox").hidden = !authRequired;
+  }).catch(() => {}).finally(loadHistory);
+})();
+</script>
+</body>
+</html>
