@@ -8,7 +8,7 @@ from app.iso6346 import (LETTER_VALUES, Token, analyze, check_digit, find_candid
 
 
 def reference_check_digit(code: str) -> int:
-    """Незалежна реалізація за таблицею зі стандарту (для звірки)."""
+    \
     table = dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                      [10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29,
                       30, 31, 32, 34, 35, 36, 37, 38]))
@@ -53,7 +53,7 @@ def test_format():
     ["CSQU", "3054383"],
     ["CSQU", "305438-3"],
     ["CSQU", "305438", "|3|"],
-    list("CSQU3054383"),                       # вертикальний напис, по символу в рядку
+    list("CSQU3054383"),
     ["MAX", "GROSS", "30480", "KG", "CSQU", "305438", "3", "45G1"],
 ])
 def test_finds_number_in_different_layouts(words):
@@ -62,13 +62,13 @@ def test_finds_number_in_different_layouts(words):
 
 
 def test_corrects_ocr_confusions_only_when_check_digit_confirms():
-    # 0 замість O у коді власника і I замість 1 у серійному номері
+
     number = make_valid("OOLU", "101234")
     noisy = "0OLU" + number[4:].replace("1", "I", 1)
     found = find_candidates([Token(noisy[:4]), Token(noisy[4:10]), Token(noisy[10])])
     assert found[0].number == number
     assert found[0].valid and found[0].corrections == 2
-    # три виправлення - це вже забагато, такий кандидат відкидається
+
     noisier = noisy[:5] + noisy[5:].replace("0", "O", 1)
     assert find_candidates([Token(noisier)]) == []
 
@@ -76,7 +76,7 @@ def test_corrects_ocr_confusions_only_when_check_digit_confirms():
 def test_rejects_correction_that_does_not_validate():
     number = make_valid("MSCU", "123456")
     wrong = number[:10] + str((int(number[10]) + 1) % 10)
-    noisy = wrong[:5] + "O" + wrong[6:]      # виправлення + неправильна контрольна цифра
+    noisy = wrong[:5] + "O" + wrong[6:]
     assert find_candidates([Token(noisy)]) == []
 
 
@@ -110,7 +110,7 @@ def test_not_found():
 def test_size_type():
     st = find_size_type([Token("CSQU"), Token("45G1")])
     assert st["code"] == "45G1" and st["length"] == "40 футів" and "high cube" in st["height"]
-    assert find_size_type([Token("TARE"), Token("2260")]) is None   # без літери - не код типу
+    assert find_size_type([Token("TARE"), Token("2260")]) is None
 
 
 def test_analyze_falls_back_to_full_text():

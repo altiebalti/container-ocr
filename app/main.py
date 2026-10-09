@@ -1,9 +1,3 @@
-"""
-Container OCR API - PoC для лабораторної роботи з хмарних обчислень.
-
-Фото контейнера -> Google Cloud Vision (OCR) -> пошук номера за ISO 6346 і перевірка
-контрольної цифри -> запис у Firestore, фото в Cloud Storage.
-"""
 from __future__ import annotations
 
 import logging
@@ -26,23 +20,14 @@ log = logging.getLogger("container-ocr")
 STATIC = Path(__file__).parent / "static"
 VERSION = "1.0.0"
 
-DESCRIPTION = """
-Розпізнавання номера вантажного контейнера на фото.
-
-1. Фото надсилається в **Google Cloud Vision API** (TEXT_DETECTION).
-2. У розпізнаному тексті шукається номер за **ISO 6346** (`CSQU 305438 3`), перевіряється
-   контрольна цифра, виправляються типові помилки OCR (`O`/`0`, `I`/`1`...).
-3. Результат зберігається у **Firestore**, фото - у **Cloud Storage**.
-
-Якщо сервіс запущено з `API_KEY`, передавайте ключ у заголовку `X-API-Key`
-(кнопка **Authorize** нижче).
-"""
+DESCRIPTION = """Фото контейнера -> Cloud Vision OCR -> номер за ISO 6346 з перевіркою контрольної цифри.
+Якщо задано API_KEY, ключ передається в заголовку X-API-Key."""
 
 
 class Settings:
     def __init__(self):
         self.api_key = os.getenv("API_KEY", "")
-        self.store = os.getenv("STORE", "memory").lower()          # memory | gcp
+        self.store = os.getenv("STORE", "memory").lower()
         self.bucket = os.getenv("GCS_BUCKET") or None
         self.collection = os.getenv("FIRESTORE_COLLECTION", "scans")
         self.database = os.getenv("FIRESTORE_DATABASE") or None
@@ -84,7 +69,6 @@ def create_app(ocr=None, store=None, settings: Settings | None = None) -> FastAP
         if not secrets.compare_digest(given.encode(), settings.api_key.encode()):
             raise HTTPException(401, "Потрібен правильний API-ключ (заголовок X-API-Key).")
 
-    # ------------------------------------------------------------------ сторінки
 
     @app.get("/", include_in_schema=False)
     def index():
@@ -100,7 +84,6 @@ def create_app(ocr=None, store=None, settings: Settings | None = None) -> FastAP
                 "store": settings.store, "image_storage": bool(settings.bucket) or settings.store == "memory",
                 "ocr": "google-cloud-vision", "max_upload_mb": settings.max_upload // (1024 * 1024)}
 
-    # ------------------------------------------------------------------ API
 
     @app.post("/api/scan", tags=["scan"], summary="Розпізнати номер контейнера на фото",
               dependencies=[Depends(require_key)])
@@ -127,7 +110,7 @@ def create_app(ocr=None, store=None, settings: Settings | None = None) -> FastAP
             result: OcrResult = get_ocr().detect(prepared.content, mode=mode)
         except OcrError as e:
             raise HTTPException(502, "Vision API повернув помилку: %s" % e)
-        except Exception as e:   # помилки автентифікації, вимкнений API, мережа
+        except Exception as e:
             log.exception("Vision API call failed")
             raise HTTPException(502, "Не вдалося викликати Vision API: %s" % e)
         t_ocr = time.perf_counter()
@@ -153,7 +136,7 @@ def create_app(ocr=None, store=None, settings: Settings | None = None) -> FastAP
         record["timings_ms"]["total"] = round((time.perf_counter() - started) * 1000)
         if save:
             store = get_store()
-            # прапорці виставляються до запису, щоб вони потрапили і в Firestore
+
             record["stored"] = True
             record["image_stored"] = store.stores_images
             t_save = time.perf_counter()

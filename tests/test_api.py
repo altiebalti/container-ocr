@@ -11,7 +11,6 @@ from app.store import MemoryStore
 
 
 class FakeOcr:
-    """Підміна Vision API: повертає заздалегідь заданий результат."""
 
     def __init__(self, result=None, error=None):
         self.result = result
@@ -30,7 +29,7 @@ def jpeg(w=800, h=600, exif_rotate=False):
     buf = BytesIO()
     if exif_rotate:
         exif = Image.Exif()
-        exif[0x0112] = 6          # повернути на 90 градусів
+        exif[0x0112] = 6
         img.save(buf, "JPEG", exif=exif)
     else:
         img.save(buf, "JPEG")
@@ -73,7 +72,7 @@ def test_scan_finds_number_and_stores_history():
 
     items = client.get("/api/scans").json()["items"]
     assert [i["id"] for i in items] == [body["id"]]
-    # прапорці мають бути і в збереженому записі, а не лише у відповіді
+
     assert items[0]["stored"] is True and items[0]["image_stored"] is True
     assert client.get("/api/scans/%s" % body["id"]).json()["container"]["number"] == "CSQU3054383"
     img = client.get("/api/scans/%s/image" % body["id"], params={"thumb": 1})

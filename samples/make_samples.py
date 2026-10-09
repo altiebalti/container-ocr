@@ -1,13 +1,3 @@
-"""
-Генерує синтетичні фото дверей контейнера для перевірки сервісу (не замінюють реальних фото).
-
-    python samples/make_samples.py
-
-Створює:
-  door_valid.jpg    - CSQU 305438 3, 45G1 (контрольна цифра правильна)
-  door_invalid.jpg  - MSCU 123456 0 (контрольна цифра неправильна)
-  door_vertical.jpg - номер вертикально, по одній літері (як на стійці дверей)
-"""
 import os
 import random
 
@@ -29,7 +19,7 @@ def font(size):
 
 
 def door(w=1600, h=1200, color=(28, 72, 140), seed=1):
-    """Гофрована сталь: вертикальні смуги двох відтінків і трохи шуму."""
+    \
     rng = random.Random(seed)
     img = Image.new("RGB", (w, h), color)
     d = ImageDraw.Draw(img)
@@ -41,8 +31,8 @@ def door(w=1600, h=1200, color=(28, 72, 140), seed=1):
     for _ in range(4000):
         x, y = rng.randrange(w), rng.randrange(h)
         d.point((x, y), fill=tuple(min(255, c + rng.randrange(-30, 30)) for c in color))
-    d.rectangle([0, 0, w - 1, 40], fill=(20, 20, 24))          # верхня балка
-    d.rectangle([w // 2 - 6, 40, w // 2 + 6, h], fill=(18, 40, 80))  # стик двох стулок
+    d.rectangle([0, 0, w - 1, 40], fill=(20, 20, 24))
+    d.rectangle([w // 2 - 6, 40, w // 2 + 6, h], fill=(18, 40, 80))
     return img
 
 

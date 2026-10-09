@@ -1,4 +1,3 @@
-"""GcpStore з підміненими Firestore і Cloud Storage: перевіряє імена об'єктів і записи."""
 from app.store import GcpStore
 
 

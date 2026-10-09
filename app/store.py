@@ -1,8 +1,3 @@
-"""Збереження історії сканувань.
-
-MemoryStore - у пам'яті процесу (локальний запуск і тести).
-GcpStore    - записи у Firestore, фото в Cloud Storage (Cloud Run).
-"""
 from __future__ import annotations
 
 import copy
@@ -21,7 +16,7 @@ class MemoryStore:
 
     def save(self, record: dict, image: bytes, thumb: bytes) -> None:
         with self._lock:
-            # копія, як у справжньому сховищі: пізніші зміни record сюди не потрапляють
+
             self._items[record["id"]] = (copy.deepcopy(record), image, thumb)
             while len(self._items) > self._limit:
                 self._items.popitem(last=False)

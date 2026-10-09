@@ -1,11 +1,9 @@
-"""Перевірка обгортки над справжнім клієнтом Vision без мережі: підміняється лише
-batch_annotate_images, а запит і відповідь - справжні protobuf-типи бібліотеки."""
 import pytest
 
 vision = pytest.importorskip("google.cloud.vision")
-from google.auth.credentials import AnonymousCredentials  # noqa: E402
+from google.auth.credentials import AnonymousCredentials
 
-from app.ocr import OcrError, VisionOcr  # noqa: E402
+from app.ocr import OcrError, VisionOcr
 
 
 def word(text, x0, y0, x1, y1):
@@ -21,7 +19,7 @@ def make_ocr(monkeypatch, response):
     client = vision.ImageAnnotatorClient(credentials=AnonymousCredentials())
 
     def fake_batch(requests, retry=None, timeout=None, metadata=()):
-        # справжній клієнт перетворює dict у protobuf так само - це перевіряє структуру запиту
+
         captured["requests"] = [vision.AnnotateImageRequest(r) if isinstance(r, dict) else r
                                 for r in requests]
         captured["timeout"] = timeout

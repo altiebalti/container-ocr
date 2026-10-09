@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Видаляє все, що створив deploy.sh (після захисту лаби).
-# База Firestore не видаляється: вона безкоштовна в межах free tier, а видалити її
-# можна в консолі (Firestore -> Databases) або командою, яку скрипт надрукує наприкінці.
 set -euo pipefail
 
 PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}
@@ -25,9 +22,7 @@ for role in roles/datastore.user roles/serviceusage.serviceUsageConsumer; do
     --role="$role" --condition=None --quiet >/dev/null || true
 done
 gcloud iam service-accounts delete "$SA" --quiet || true
-# бакет з вихідним кодом, який створює `gcloud run deploy --source`
 gcloud storage rm --recursive "gs://run-sources-${PROJECT_ID}-${REGION}" --quiet 2>/dev/null || true
-# образи, які зібрав Cloud Run, лежать в Artifact Registry
 gcloud artifacts repositories delete cloud-run-source-deploy --location "$REGION" --quiet || true
 
 echo

@@ -1,26 +1,14 @@
-"""
-Пошук і перевірка номерів контейнерів за стандартом ISO 6346.
-
-Номер контейнера: 3 літери коду власника + категорія (U, J або Z) + 6 цифр серійного
-номера + 1 контрольна цифра, наприклад CSQU 305438 3.
-
-Контрольна цифра: кожен з перших 10 символів переводиться в число (цифри як є, літери
-A=10, B=12, ... Z=38 з пропуском кратних 11), множиться на 2^позиція, сума береться за
-модулем 11, а результат 10 записується як 0.
-"""
 from __future__ import annotations
 
 import re
 import string
 from dataclasses import dataclass, field
 
-# --------------------------------------------------------------------------- значення літер
-
 
 def _letter_values() -> dict[str, int]:
     values, v = {}, 10
     for ch in string.ascii_uppercase:
-        if v % 11 == 0:          # 11, 22, 33 пропускаються
+        if v % 11 == 0:
             v += 1
         values[ch] = v
         v += 1
@@ -35,8 +23,7 @@ CATEGORIES = {
     "Z": "трейлер або шасі",
 }
 
-# Типові помилки OCR: у позиціях, де мають бути літери, цифри читаються як схожі літери,
-# і навпаки. Виправлення приймаються, лише якщо після них контрольна цифра сходиться.
+
 TO_LETTER = {"0": "O", "1": "I", "2": "Z", "4": "A", "5": "S", "6": "G", "7": "T", "8": "B"}
 TO_DIGIT = {"O": "0", "Q": "0", "D": "0", "I": "1", "L": "1", "Z": "2", "A": "4",
             "S": "5", "G": "6", "T": "7", "B": "8"}
@@ -45,7 +32,7 @@ MAX_CORRECTIONS = 2
 
 
 def check_digit(first10: str) -> int:
-    """Контрольна цифра для перших 10 символів номера (наприклад 'CSQU305438' -> 3)."""
+    \
     if len(first10) != 10:
         raise ValueError("expected 10 characters, got %d" % len(first10))
     total = 0
@@ -66,26 +53,23 @@ def format_number(number: str) -> str:
     return "%s %s %s" % (number[:4], number[4:10], number[10])
 
 
-# --------------------------------------------------------------------------- кандидати
-
-
 @dataclass
 class Token:
-    """Слово з OCR і його прямокутник [x0, y0, x1, y1] у пікселях (якщо відомий)."""
+    \
     text: str
     box: list[int] | None = None
 
 
 @dataclass
 class Candidate:
-    number: str                 # 11 символів після виправлень
-    raw: str                    # як прочитав OCR (токени через пробіл)
-    corrections: int            # скільки символів виправлено
-    valid: bool                 # чи сходиться контрольна цифра
+    number: str
+    raw: str
+    corrections: int
+    valid: bool
     expected_check_digit: int
-    order: int                  # позиція в тексті (для впорядкування)
+    order: int
     box: list[int] | None = None
-    check_digit_read: bool = True   # False - контрольну цифру не прочитано, її обчислено
+    check_digit_read: bool = True
 
     @property
     def category(self) -> str:
@@ -110,8 +94,7 @@ class Candidate:
 
 
 def _normalize(chars: str) -> tuple[str, int] | None:
-    """Привести 11 символів до формату AAAU0000000 з мінімумом виправлень.
-    Повертає (номер, кількість виправлень) або None, якщо це не схоже на номер."""
+    \
     out, fixes = [], 0
     for i, ch in enumerate(chars):
         if i < 3:
@@ -156,12 +139,9 @@ def _alnum(text: str) -> str:
 
 
 def find_candidates(tokens: list[Token], max_tokens: int = 16) -> list[Candidate]:
-    """Шукає номери в послідовності слів OCR.
-
-    Номер може бути розбитий на кілька слів ('CSQU' '305438' '3'), написаний разом
-    ('CSQU3054383') або вертикально, по одній літері в рядку. Тому перебираються всі вікна
-    з сусідніх слів, у яких разом рівно 11 літер/цифр.
-    """
+    \
+\
+\
     alnum = [_alnum(t.text) for t in tokens]
     best: dict[str, Candidate] = {}
     for i in range(len(tokens)):
@@ -181,7 +161,7 @@ def find_candidates(tokens: list[Token], max_tokens: int = 16) -> list[Candidate
             expected = check_digit(number[:10])
             valid = expected == int(number[10])
             if fixes and not valid:
-                break        # виправлення без підтвердження контрольною цифрою не приймаємо
+                break
             cand = Candidate(
                 number=number,
                 raw=" ".join(t.text for t in tokens[i:j + 1] if _alnum(t.text)),
@@ -202,9 +182,8 @@ PARTIAL_RE = re.compile(r"[A-Z]{3}[UJZ]\d{6}")
 
 
 def find_partial(tokens: list[Token], max_tokens: int = 14) -> list[Candidate]:
-    """Код власника і серійний номер без контрольної цифри (її часто не видно або OCR
-    не читає цифру в рамці). Без контрольної цифри виправлення не перевірити, тому
-    приймаються лише точні збіги, а контрольна цифра обчислюється."""
+    \
+\
     alnum = [_alnum(t.text) for t in tokens]
     found: dict[str, Candidate] = {}
     for i in range(len(tokens)):
@@ -232,11 +211,9 @@ def _rank(c: Candidate):
 
 
 def tokens_from_text(text: str) -> list[Token]:
-    """Якщо OCR не дав окремих слів, ділимо повний текст за пробілами (без координат)."""
+    \
     return [Token(w) for w in text.split()]
 
-
-# --------------------------------------------------------------------------- код розміру і типу
 
 LENGTHS = {"1": "10 футів", "2": "20 футів", "3": "30 футів", "4": "40 футів", "L": "45 футів"}
 HEIGHTS = {"0": "8 футів", "2": "8 футів 6 дюймів", "4": "9 футів",
@@ -257,7 +234,7 @@ SIZE_TYPE_RE = re.compile(r"^([1234L])([02456])([GVBSRHUPTA])(\d)$")
 
 
 def find_size_type(tokens: list[Token]) -> dict | None:
-    """Код розміру і типу (наприклад 45G1), який зазвичай нанесено під номером."""
+    \
     for t in tokens:
         m = SIZE_TYPE_RE.match(_alnum(t.text))
         if m and len(_alnum(t.text)) == 4:
@@ -272,16 +249,13 @@ def find_size_type(tokens: list[Token]) -> dict | None:
     return None
 
 
-# --------------------------------------------------------------------------- підсумок
-
-
 def analyze(tokens: list[Token], text: str = "") -> dict:
-    """Повний розбір результату OCR: найкращий номер, інші кандидати, код типу."""
+    \
     if not tokens and text:
         tokens = tokens_from_text(text)
     candidates = find_candidates(tokens)
     if not candidates and text:
-        # запасний варіант: слова з повного тексту (інший порядок і розбиття)
+
         candidates = find_candidates(tokens_from_text(text))
     if not candidates:
         candidates = find_partial(tokens) or (find_partial(tokens_from_text(text)) if text else [])

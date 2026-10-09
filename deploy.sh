@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Розгортання Container OCR у Google Cloud (найпростіше - у Cloud Shell).
-#
-#   ./deploy.sh                      # проєкт з `gcloud config`, регіон europe-west1
-#   REGION=europe-central2 ./deploy.sh
-#
-# Скрипт можна запускати повторно: те, що вже створено, пропускається, а код
-# перевикладається новою ревізією Cloud Run.
 set -euo pipefail
 
 PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}
@@ -23,7 +16,8 @@ PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectN
 cd "$(dirname "$0")"
 
 step() { printf '\n== %s\n' "$*"; }
-retry() {   # нові сервісні акаунти з'являються в IAM не одразу
+# новий сервісний акаунт в IAM з'являється не одразу, тому повтори
+retry() {
   local n=0
   until "$@" >/dev/null; do
     n=$((n + 1)); [ $n -ge 12 ] && return 1
@@ -35,7 +29,6 @@ echo "Проєкт: $PROJECT_ID ($PROJECT_NUMBER), регіон: $REGION"
 gcloud config set project "$PROJECT_ID" >/dev/null
 
 step "1/6 Вмикаю API: Vision, Cloud Run, Cloud Build, Artifact Registry, Firestore, Storage, IAM, Compute"
-# Compute Engine API потрібен, бо збірку виконує його сервісний акаунт за замовчуванням
 gcloud services enable vision.googleapis.com run.googleapis.com cloudbuild.googleapis.com \
   artifactregistry.googleapis.com firestore.googleapis.com storage.googleapis.com \
   iam.googleapis.com compute.googleapis.com
@@ -44,7 +37,6 @@ step "2/6 База Firestore (Native mode)"
 if gcloud firestore databases describe --database="(default)" >/dev/null 2>&1; then
   echo "   вже існує"
 else
-  # щойно ввімкнений API іноді ще кілька хвилин не готовий - тому з повторами
   retry gcloud firestore databases create --database="(default)" --location="$REGION" --type=firestore-native
 fi
 
@@ -69,7 +61,7 @@ done
 retry gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \
   --member="serviceAccount:$SA" --role="roles/storage.objectAdmin"
 echo "   roles/storage.objectAdmin на бакет"
-# збірка з вихідного коду виконується від імені сервісного акаунта Compute Engine
+# збірку з --source робить дефолтний compute sa, йому треба run.builder
 retry gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/run.builder" --condition=None --quiet

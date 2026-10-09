@@ -33,8 +33,6 @@
   }
   button, input, select { font: inherit; color: inherit; }
   :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
-
-  /* ---------------------------------------------------------------- header */
   .top {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
@@ -48,8 +46,6 @@
     background: var(--steel); font-size: 14px;
   }
   .top a { color: var(--ink-2); font-size: 14px; }
-
-  /* ---------------------------------------------------------------- layout */
   main {
     display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     gap: 24px; max-width: 1200px; margin: 0 auto; padding: 24px;
@@ -62,8 +58,6 @@
     .key input { flex: 1; width: auto; }
     .seg span { padding: 5px 8px; font-size: 13px; }
   }
-
-  /* ---------------------------------------------------------------- photo */
   .stage {
     position: relative; min-height: 360px; border-radius: var(--radius);
     background: var(--panel); border: 2px dashed var(--line);
@@ -112,8 +106,6 @@
   .seg input:checked + span { background: var(--plate); color: #fff; }
   .seg input:focus-visible + span { outline: 3px solid var(--signal); outline-offset: -3px; }
   .toolbar .btn { padding: 6px 14px; }
-
-  /* ---------------------------------------------------------------- result */
   .side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
   .plate {
     background: var(--plate); color: #fff; border-radius: var(--radius);
@@ -156,8 +148,6 @@
     border-left: 4px solid var(--bad); background: #fdecea; padding: 12px 14px; border-radius: 0 var(--radius) var(--radius) 0;
   }
   .error strong { display: block; }
-
-  /* ---------------------------------------------------------------- history */
   .history h2 { font: 600 22px/1.2 var(--cond); margin: 0 0 8px; }
   .history ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
   .history li button {
@@ -276,8 +266,6 @@
   const ICON_OK = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 10.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>';
   const ICON_BAD = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.5 6.5l7 7M13.5 6.5l-7 7" stroke="currentColor" stroke-width="2.2"/></svg>';
   const ICON_NONE = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 10h8" stroke="currentColor" stroke-width="2.2"/></svg>';
-
-  // ------------------------------------------------------------ вибір фото
   document.querySelectorAll("[data-pick]").forEach((input) =>
     input.addEventListener("change", () => { if (input.files[0]) scan(input.files[0]); input.value = ""; }));
 
@@ -313,8 +301,6 @@
     stage.classList.remove("has-photo");
     overlay.innerHTML = "";
   }
-
-  // ------------------------------------------------------------ сканування
   async function scan(file) {
     showPhoto(URL.createObjectURL(file));
     photo.classList.add("busy");
@@ -392,8 +378,6 @@
     result.innerHTML = plate + `<dl class="facts">${facts}</dl>` + othersHtml + stored +
       `<details><summary>Текст, який прочитав Vision</summary><pre>${esc(rec.text || "(порожньо)")}</pre></details>`;
   }
-
-  // ------------------------------------------------------------ історія
   async function loadHistory() {
     releaseThumbs();
     try {

@@ -1,4 +1,3 @@
-"""Розпізнавання тексту через Google Cloud Vision API."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,9 +5,9 @@ from dataclasses import dataclass, field
 from .iso6346 import Token
 
 MODES = {
-    # TEXT_DETECTION - для окремих написів на фото (вивіски, маркування контейнерів)
+
     "text": "TEXT_DETECTION",
-    # DOCUMENT_TEXT_DETECTION - для щільного тексту (документи, накладні)
+
     "document": "DOCUMENT_TEXT_DETECTION",
 }
 
@@ -33,14 +32,11 @@ def _box(poly) -> list[int] | None:
 
 
 class VisionOcr:
-    """Обгортка над vision.ImageAnnotatorClient.
-
-    Автентифікація - Application Default Credentials: на Cloud Run це сервісний акаунт
-    сервісу, локально - `gcloud auth application-default login`.
-    """
+\
+\
 
     def __init__(self, language_hints: tuple[str, ...] = ("en",), timeout: float = 30.0):
-        from google.cloud import vision   # імпорт тут, щоб тести не потребували бібліотеки
+        from google.cloud import vision
 
         self._vision = vision
         self.client = vision.ImageAnnotatorClient()
@@ -63,7 +59,7 @@ class VisionOcr:
         annotations = response.text_annotations
         if not annotations:
             return OcrResult(text="")
-        # перша анотація - увесь текст, далі - окремі слова з координатами
+
         return OcrResult(
             text=annotations[0].description,
             tokens=[Token(a.description, _box(a.bounding_poly)) for a in annotations[1:]],
