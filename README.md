@@ -46,6 +46,7 @@ flowchart LR
 | `deploy.sh` / `cleanup.sh` | розгортання і видалення в GCP |
 | `tests/` | 42 тести (pytest), Vision, Firestore і Storage підмінено |
 | `samples/` | синтетичні фото дверей контейнера для перевірки |
+| `samples/real/` | справжні фото з Wikimedia Commons з відомими номерами, результати й атрибуція в [README](samples/real/README.md) |
 
 ## Розгортання (Cloud Shell, приблизно 10 хвилин)
 
