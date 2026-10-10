@@ -11,7 +11,6 @@ from app.store import MemoryStore
 
 
 class FakeOcr:
-
     def __init__(self, result=None, error=None):
         self.result = result
         self.error = error

@@ -28,8 +28,6 @@ def _jpeg(img: Image.Image, quality: int) -> bytes:
 
 
 def prepare(data: bytes) -> PreparedImage:
-    \
-\
     try:
         img = Image.open(BytesIO(data))
 

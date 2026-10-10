@@ -8,7 +8,6 @@ from app.iso6346 import (LETTER_VALUES, Token, analyze, check_digit, find_candid
 
 
 def reference_check_digit(code: str) -> int:
-    \
     table = dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                      [10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29,
                       30, 31, 32, 34, 35, 36, 37, 38]))
@@ -62,7 +61,6 @@ def test_finds_number_in_different_layouts(words):
 
 
 def test_corrects_ocr_confusions_only_when_check_digit_confirms():
-
     number = make_valid("OOLU", "101234")
     noisy = "0OLU" + number[4:].replace("1", "I", 1)
     found = find_candidates([Token(noisy[:4]), Token(noisy[4:10]), Token(noisy[10])])

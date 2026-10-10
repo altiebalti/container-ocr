@@ -16,7 +16,6 @@ class MemoryStore:
 
     def save(self, record: dict, image: bytes, thumb: bytes) -> None:
         with self._lock:
-
             self._items[record["id"]] = (copy.deepcopy(record), image, thumb)
             while len(self._items) > self._limit:
                 self._items.popitem(last=False)

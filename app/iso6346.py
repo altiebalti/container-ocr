@@ -32,7 +32,6 @@ MAX_CORRECTIONS = 2
 
 
 def check_digit(first10: str) -> int:
-    \
     if len(first10) != 10:
         raise ValueError("expected 10 characters, got %d" % len(first10))
     total = 0
@@ -55,7 +54,6 @@ def format_number(number: str) -> str:
 
 @dataclass
 class Token:
-    \
     text: str
     box: list[int] | None = None
 
@@ -94,7 +92,6 @@ class Candidate:
 
 
 def _normalize(chars: str) -> tuple[str, int] | None:
-    \
     out, fixes = [], 0
     for i, ch in enumerate(chars):
         if i < 3:
@@ -139,9 +136,6 @@ def _alnum(text: str) -> str:
 
 
 def find_candidates(tokens: list[Token], max_tokens: int = 16) -> list[Candidate]:
-    \
-\
-\
     alnum = [_alnum(t.text) for t in tokens]
     best: dict[str, Candidate] = {}
     for i in range(len(tokens)):
@@ -182,8 +176,6 @@ PARTIAL_RE = re.compile(r"[A-Z]{3}[UJZ]\d{6}")
 
 
 def find_partial(tokens: list[Token], max_tokens: int = 14) -> list[Candidate]:
-    \
-\
     alnum = [_alnum(t.text) for t in tokens]
     found: dict[str, Candidate] = {}
     for i in range(len(tokens)):
@@ -211,7 +203,6 @@ def _rank(c: Candidate):
 
 
 def tokens_from_text(text: str) -> list[Token]:
-    \
     return [Token(w) for w in text.split()]
 
 
@@ -234,7 +225,6 @@ SIZE_TYPE_RE = re.compile(r"^([1234L])([02456])([GVBSRHUPTA])(\d)$")
 
 
 def find_size_type(tokens: list[Token]) -> dict | None:
-    \
     for t in tokens:
         m = SIZE_TYPE_RE.match(_alnum(t.text))
         if m and len(_alnum(t.text)) == 4:
@@ -250,12 +240,10 @@ def find_size_type(tokens: list[Token]) -> dict | None:
 
 
 def analyze(tokens: list[Token], text: str = "") -> dict:
-    \
     if not tokens and text:
         tokens = tokens_from_text(text)
     candidates = find_candidates(tokens)
     if not candidates and text:
-
         candidates = find_candidates(tokens_from_text(text))
     if not candidates:
         candidates = find_partial(tokens) or (find_partial(tokens_from_text(text)) if text else [])

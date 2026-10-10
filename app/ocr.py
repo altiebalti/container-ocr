@@ -32,9 +32,6 @@ def _box(poly) -> list[int] | None:
 
 
 class VisionOcr:
-\
-\
-
     def __init__(self, language_hints: tuple[str, ...] = ("en",), timeout: float = 30.0):
         from google.cloud import vision
 

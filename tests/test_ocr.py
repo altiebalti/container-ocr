@@ -19,7 +19,6 @@ def make_ocr(monkeypatch, response):
     client = vision.ImageAnnotatorClient(credentials=AnonymousCredentials())
 
     def fake_batch(requests, retry=None, timeout=None, metadata=()):
-
         captured["requests"] = [vision.AnnotateImageRequest(r) if isinstance(r, dict) else r
                                 for r in requests]
         captured["timeout"] = timeout

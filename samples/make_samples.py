@@ -19,7 +19,6 @@ def font(size):
 
 
 def door(w=1600, h=1200, color=(28, 72, 140), seed=1):
-    \
     rng = random.Random(seed)
     img = Image.new("RGB", (w, h), color)
     d = ImageDraw.Draw(img)
